@@ -1,97 +1,317 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# Twilio Verify React Native Example App
 
-# Getting Started
+A comprehensive example application demonstrating how to integrate and use [Twilio Verify Push](https://www.twilio.com/docs/verify/push) in React Native for implementing secure two-factor authentication (2FA).
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+## 📱 Features
 
-## Step 1: Start Metro
+### Create Factor Tab
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+- ✅ Create push verification factors with Twilio Verify
+- ✅ Random identity generator for quick testing
+- ✅ Network connectivity indicator
+- ✅ Automatic factor verification
+- ✅ Check SDK availability
+- ✅ Clear local storage
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+### Manage Factors Tab
 
-```sh
-# Using npm
-npm start
+- ✅ List all registered factors
+- ✅ Pull-to-refresh factor list
+- ✅ View detailed factor information
+- ✅ Delete factors with confirmation
+- ✅ Interactive factor selection
 
-# OR using Yarn
-yarn start
+## 🚀 Prerequisites
+
+Before running this app, you need:
+
+1. **Twilio Account**: Sign up at [twilio.com](https://www.twilio.com)
+2. **Twilio Verify Service**: Create a Verify service in the [Twilio Console](https://console.twilio.com/us1/develop/verify/services)
+3. **Backend Server**: A server endpoint that generates Twilio Access Tokens
+4. **React Native Environment**: Set up according to [React Native docs](https://reactnative.dev/docs/environment-setup)
+
+## 📦 Installation
+
+1. **Clone and install dependencies:**
+
+```bash
+cd VerifyRN
+npm install
 ```
 
-## Step 2: Build and run your app
+2. **Install iOS dependencies (iOS only):**
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
-
-### Android
-
-```sh
-# Using npm
-npm run android
-
-# OR using Yarn
-yarn android
+```bash
+cd ios && pod install && cd ..
 ```
 
-### iOS
+3. **Run the app:**
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
+```bash
+# Android
+npx react-native run-android
 
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
-
-```sh
-bundle install
+# iOS
+npx react-native run-ios
 ```
 
-Then, and every time you update your native dependencies, run:
+## 🔧 Configuration
 
-```sh
-bundle exec pod install
+### 1. Backend Server Setup
+
+Your backend must provide an endpoint that:
+
+- Accepts a POST request with `{ identity: string }`
+- Returns a JSON response with:
+
+```json
+{
+  "token": "eyJ...", // Twilio Access Token (JWT)
+  "serviceSid": "VAxxxxx", // Your Verify Service SID
+  "identity": "hashed_value", // User identity (can be hashed)
+  "factorType": "push"
+}
 ```
 
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
+### 2. Update Access Token URL
 
-```sh
-# Using npm
-npm run ios
+In the app, update the default URL in `CreateFactorScreen`:
 
-# OR using Yarn
-yarn ios
+```typescript
+const [accessTokenUrl, setAccessTokenUrl] = useState<string>(
+  'https://your-backend.com/access-token', // Update this
+);
 ```
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+### 3. Generate Access Tokens (Backend)
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+Example Node.js backend code:
 
-## Step 3: Modify your app
+```javascript
+const twilio = require('twilio');
+const AccessToken = twilio.jwt.AccessToken;
+const VoiceGrant = AccessToken.VoiceGrant;
 
-Now that you have successfully run the app, let's make changes!
+app.post('/access-token', (req, res) => {
+  const { identity } = req.body;
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+  // Create access token
+  const token = new AccessToken(
+    process.env.TWILIO_ACCOUNT_SID,
+    process.env.TWILIO_API_KEY,
+    process.env.TWILIO_API_SECRET,
+    { identity },
+  );
 
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
+  // Add Verify grant
+  const grant = new VoiceGrant({
+    pushCredentialSid: process.env.PUSH_CREDENTIAL_SID, // Optional
+  });
+  token.addGrant(grant);
 
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
+  res.json({
+    token: token.toJwt(),
+    serviceSid: process.env.VERIFY_SERVICE_SID,
+    identity: identity,
+    factorType: 'push',
+  });
+});
+```
 
-## Congratulations! :tada:
+## 📖 Usage Guide
 
-You've successfully run and modified your React Native App. :partying_face:
+### Creating a Factor
 
-### Now what?
+1. Navigate to the **Create Factor** tab
+2. Click the 🎲 button to generate a random identity (or enter your own)
+3. Verify the Access Token URL is correct
+4. Press **Create Verification Factor**
+5. The factor will be created and verified automatically
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
+### Managing Factors
 
-# Troubleshooting
+1. Navigate to the **Manage Factors** tab
+2. See all registered factors with their status
+3. Tap any factor to view detailed information
+4. Use the **Delete** button to remove a factor
+5. Pull down to refresh the factor list
 
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
+## 🔑 Key API Methods Used
 
-# Learn More
+### Initialize and Check Availability
 
-To learn more about React Native, take a look at the following resources:
+```typescript
+const isAvailable = await TwilioVerify.isAvailable();
+```
 
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+### Create a Push Factor
+
+```typescript
+import {
+  PushFactorPayload,
+  FactorType,
+} from '@twilio/twilio-verify-for-react-native';
+
+const factorPayload = new PushFactorPayload(
+  'My Phone', // Friendly name
+  serviceSid, // Service SID from backend
+  identity, // User identity
+  accessToken, // JWT token from backend
+  pushToken, // FCM/APNS token
+);
+
+const factor = await TwilioVerify.createFactor(factorPayload);
+```
+
+### Verify a Factor
+
+```typescript
+import { VerifyPushFactorPayload } from '@twilio/twilio-verify-for-react-native';
+
+const verifyPayload: VerifyPushFactorPayload = {
+  sid: factor.sid,
+  factorType: FactorType.Push,
+};
+
+const verifiedFactor = await TwilioVerify.verifyFactor(verifyPayload);
+```
+
+### Get All Factors
+
+```typescript
+const factors = await TwilioVerify.getAllFactors();
+console.log('All factors:', factors);
+```
+
+### Delete a Factor
+
+```typescript
+await TwilioVerify.deleteFactor(factorSid);
+```
+
+### Clear Local Storage
+
+```typescript
+await TwilioVerify.clearLocalStorage();
+```
+
+## 🏗️ Architecture
+
+### Component Structure
+
+```
+App
+├── NavigationContainer
+└── Tab.Navigator
+    ├── CreateFactorScreen (Create Factor Tab)
+    │   ├── NetworkIndicator
+    │   ├── Identity Input with Random Generator
+    │   ├── Access Token URL Input
+    │   ├── Create Factor Button
+    │   └── Actions Section
+    └── FactorsListScreen (Manage Factors Tab)
+        ├── NetworkIndicator
+        ├── Factor List (FlatList)
+        │   └── FactorCard (TouchableOpacity)
+        └── DetailsPanel (Factor Details)
+```
+
+### State Management
+
+- Local component state with React hooks (`useState`, `useEffect`)
+- Network state with `@react-native-community/netinfo`
+- Navigation with React Navigation bottom tabs
+
+## 🐛 Troubleshooting
+
+### Error 60401: Exception while calling the API
+
+**Causes:**
+
+- Invalid `serviceSid` (must start with "VA")
+- Incorrect or expired `accessToken`
+- Mismatched `identity` between token and request
+- Invalid `pushToken` (must be real FCM/APNS token for production)
+
+**Solution:**
+
+1. Verify your backend returns the correct `serviceSid`
+2. Ensure the `identity` in the token matches the one used to create the factor
+3. Use `data.identity` from backend response (not the input identity)
+4. For production, implement Firebase Cloud Messaging (FCM) or Apple Push Notification Service (APNS)
+
+### Network Issues
+
+The app includes a network indicator at the top:
+
+- 🟢 **Green**: Connected
+- 🔴 **Red**: Not Connected
+
+Ensure you have an active internet connection before creating factors.
+
+### Factor Creation Fails
+
+Check the console logs for detailed error information:
+
+- `Full server response:` - Shows what your backend returned
+- `About to create factor with:` - Shows the parameters being sent to Twilio
+
+## 📚 Additional Resources
+
+- [Twilio Verify Push Documentation](https://www.twilio.com/docs/verify/push)
+- [Twilio Verify React Native SDK](https://github.com/twilio/twilio-verify-for-react-native)
+- [Twilio Access Tokens](https://www.twilio.com/docs/iam/access-tokens)
+- [React Navigation](https://reactnavigation.org/)
+
+## 🔐 Security Best Practices
+
+1. **Never hardcode credentials** in your React Native app
+2. **Always generate Access Tokens on your backend** server
+3. **Validate user identity** on the backend before issuing tokens
+4. **Use HTTPS** for all backend communications
+5. **Implement proper authentication** before allowing factor creation
+6. **Rotate API keys regularly** in your Twilio account
+7. **Monitor usage** in the Twilio Console to detect anomalies
+
+## 📱 Push Notifications Setup (Optional)
+
+For production use with real push notifications:
+
+### Android (Firebase Cloud Messaging)
+
+1. Create a Firebase project
+2. Download `google-services.json`
+3. Add FCM push credentials to Twilio Console
+4. Install Firebase libraries: `npm install @react-native-firebase/app @react-native-firebase/messaging`
+5. Get FCM token and pass it as `pushToken`
+
+### iOS (Apple Push Notification Service)
+
+1. Configure APNS certificates in Apple Developer Portal
+2. Add push credentials to Twilio Console
+3. Configure Xcode project for push notifications
+4. Get APNS token and pass it as `pushToken`
+
+## 🤝 Contributing
+
+This is an example application. Feel free to use it as a starting point for your own Twilio Verify implementation.
+
+## 📄 License
+
+This example app is provided as-is for educational purposes.
+
+## 🆘 Support
+
+For Twilio Verify SDK issues:
+
+- GitHub: [twilio/twilio-verify-for-react-native](https://github.com/twilio/twilio-verify-for-react-native)
+- Twilio Support: [support.twilio.com](https://support.twilio.com)
+
+For general Twilio questions:
+
+- Twilio Docs: [twilio.com/docs](https://www.twilio.com/docs)
+- Twilio Community: [twilio.com/community](https://www.twilio.com/community)
+
+---
+
+**Built with ❤️ using Twilio Verify and React Native**
