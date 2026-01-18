@@ -35,7 +35,7 @@ Before running this app, you need:
 1. **Clone and install dependencies:**
 
 ```bash
-cd VerifyRN
+cd verify-react-native-example
 npm install
 ```
 
